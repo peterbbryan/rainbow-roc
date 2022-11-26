@@ -1,25 +1,29 @@
 # sample from https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
 
 from types import MappingProxyType
-from typing import Any, List, Mapping, Tuple
+from typing import Any, Iterable, Mapping, Tuple
 
+import fire
+import matplotlib.pyplot as plt
 import numpy as np
 from sklearn import datasets, svm
 from sklearn.base import BaseEstimator
+from sklearn.metrics import roc_curve
 from sklearn.model_selection import train_test_split
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import label_binarize
 
 _DEFAULT_SEED: int = 42
 _DEFAULT_TEST_SIZE: float = 0.8
-_DEFAULT_CLASSIFIER_ARGS = []
+_DEFAULT_CLASSIFIER_ARGS = ()
 _DEFAULT_CLASSIFIED_KWARGS = MappingProxyType(
     {
-        "kernel": "linear", 
-        "probability": True, 
-        "random_state": 42,  
+        "kernel": "linear",
+        "probability": True,
+        "random_state": 42,
     }
 )
+
 
 def load_iris_data(
     seed: int = _DEFAULT_SEED, test_size: float = _DEFAULT_TEST_SIZE
@@ -48,39 +52,60 @@ def load_iris_data(
 
 
 def get_model(
-    classifer_args: List[Any] = _DEFAULT_CLASSIFIER_ARGS,
-    classifier_kwargs: Mapping[str, Any] = _DEFAULT_CLASSIFIED_KWARGS,
+    classifer_args: Iterable[Any],
+    classifier_kwargs: Mapping[str, Any],
 ) -> BaseEstimator:
     """
+    Get one v. rest SVC classifier.
 
     Args:
-        classifer_args:
-        classifier_kwargs:
+        classifer_args: SVM arguments.
+        classifier_kwargs: SVM key word arguments.
     """
 
-    return OneVsRestClassifier(
-        svm.SVC(*classifer_args, **classifier_kwargs)
+    return OneVsRestClassifier(svm.SVC(*classifer_args, **classifier_kwargs))
+
+
+def cli_handler(
+    seed: int = _DEFAULT_SEED,
+    test_size: float = _DEFAULT_TEST_SIZE,
+    classifier_args: Iterable[Any] = _DEFAULT_CLASSIFIER_ARGS,
+    classifier_kwargs: Mapping[str, Any] = _DEFAULT_CLASSIFIED_KWARGS,
+) -> None:
+    """
+
+
+    Args:
+        seed: Random seed.
+        test_size: Percentage of dataset reserved for test.
+        classifer_args: SVM arguments.
+        classifier_kwargs: SVM key word arguments.
+    """
+
+    (x_train, y_train), (x_test, y_test) = load_iris_data(
+        seed=seed,
+        test_size=test_size
     )
-
-
-def cli_handler(classifier_args, classifier_kwargs):
-    ...
-
-
-if __name__ == "__main__":
-    
-    (x_train, y_train), (x_test, y_test) = load_iris_data()
-    classifier = get_model()
+    classifier = get_model(
+        classifer_args=classifier_args, classifier_kwargs=classifier_kwargs
+    )
 
     y_score = classifier.fit(x_train, y_train).decision_function(x_test)
 
+    categorical_labels = np.argmax(np.concatenate((y_train, y_test)), axis=-1)
+    unique_labels = np.sort(np.unique(categorical_labels))
 
-# Compute ROC curve and ROC area for each class
-# fpr = dict()
-# tpr = dict()
-# roc_auc = dict()
-# for i in range(n_classes):
-#    fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
+    plt.figure()
 
-# Compute micro-average ROC curve and ROC area
-# fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), y_score.ravel())
+    for i in unique_labels:
+        fpr, tpr, _ = roc_curve(y_test[:, i], y_score[:, i])
+        plt.scatter(fpr, tpr, s=None, c=None, cmap=None)
+
+    plt.xlabel("False positive rate")
+    plt.ylabel("True positive rate")
+
+    plt.show()
+
+
+if __name__ == "__main__":
+    fire.Fire(cli_handler)
