@@ -1,6 +1,7 @@
 black==22.10.0
 fire==0.4.0
 isort==5.10.1
+matplotlib==3.6.2
 mypy==0.991
 pylint==2.15.6
 scikit-learn==1.1.3
