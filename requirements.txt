@@ -3,3 +3,4 @@ fire==0.4.0
 isort==5.10.1
 mypy==0.991
 pylint==2.15.6
+scikit-learn==1.1.3

@@ -1,7 +1,11 @@
-# sample from https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
+"""
+Rainbow ROC demo of visualized thresholds.
+
+Derived from https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
+"""
 
 from types import MappingProxyType
-from typing import Any, Iterable, Mapping, Tuple
+from typing import Any, Mapping, Tuple
 
 import fire
 import matplotlib.pyplot as plt
@@ -39,9 +43,7 @@ def load_iris_data(
     """
 
     iris = datasets.load_iris()
-    x, y = iris.data, iris.target
-
-    # Binarize the output
+    x, y = iris.data, iris.target  # pylint: disable=no-member
     y = label_binarize(y, classes=[0, 1, 2])
 
     x_train, x_test, y_train, y_test = train_test_split(
@@ -52,7 +54,7 @@ def load_iris_data(
 
 
 def get_model(
-    classifer_args: Iterable[Any],
+    classifer_args: Tuple,
     classifier_kwargs: Mapping[str, Any],
 ) -> BaseEstimator:
     """
@@ -69,11 +71,13 @@ def get_model(
 def cli_handler(
     seed: int = _DEFAULT_SEED,
     test_size: float = _DEFAULT_TEST_SIZE,
-    classifier_args: Iterable[Any] = _DEFAULT_CLASSIFIER_ARGS,
+    classifier_args: Tuple = _DEFAULT_CLASSIFIER_ARGS,
     classifier_kwargs: Mapping[str, Any] = _DEFAULT_CLASSIFIED_KWARGS,
+    output_file: str = "rainbow_curve.png",
+    labels: Tuple = ("Setosa", "Versicolour", "Virginica"),
 ) -> None:
     """
-
+    CLI handler for plotting.
 
     Args:
         seed: Random seed.
@@ -83,8 +87,7 @@ def cli_handler(
     """
 
     (x_train, y_train), (x_test, y_test) = load_iris_data(
-        seed=seed,
-        test_size=test_size
+        seed=seed, test_size=test_size
     )
     classifier = get_model(
         classifer_args=classifier_args, classifier_kwargs=classifier_kwargs
@@ -95,16 +98,21 @@ def cli_handler(
     categorical_labels = np.argmax(np.concatenate((y_train, y_test)), axis=-1)
     unique_labels = np.sort(np.unique(categorical_labels))
 
-    plt.figure()
+    plt.figure(figsize=(5, 12))
 
     for i in unique_labels:
-        fpr, tpr, _ = roc_curve(y_test[:, i], y_score[:, i])
-        plt.scatter(fpr, tpr, s=None, c=None, cmap=None)
+        fpr, tpr, thresholds = roc_curve(y_test[:, i], y_score[:, i])
+        plt.subplot(len(unique_labels), 1, i + 1)
+        plt.plot(fpr, tpr, c="black")
+        plt.scatter(fpr, tpr, c=thresholds, cmap="rainbow")
+        plt.axis("square")
+        plt.colorbar()
+        plt.title(labels[i])
+        plt.xlabel("False positive rate")
+        plt.ylabel("True positive rate")
 
-    plt.xlabel("False positive rate")
-    plt.ylabel("True positive rate")
-
-    plt.show()
+    plt.tight_layout()
+    plt.savefig(output_file)
 
 
 if __name__ == "__main__":
